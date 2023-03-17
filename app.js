@@ -1,16 +1,26 @@
 const express = require("express");
 const cors = require("cors");
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8082;
 const fs = require("fs");
 const fetch = require("node-fetch");
 
-const { HOST, expiryTimeInDays } = require("./constants");
+// fs.readFileSync('csd',{encoding: 'binary'})
+
+const {
+  HOST,
+  expiryTimeInDays,
+  illegalChar,
+  uploadService,
+} = require("./constants");
 const { getData } = require("./getData");
 const { upload } = require("./upload");
+const { ipFsUpload } = require("./ipfsUpload");
+
 const responseState = require("./responseState");
 
 const { createFileBin } = require("./createFilebin");
 const { FileSystemCache } = require("./FileSystemCache_1");
+const { redisClient } = require("./redis");
 
 const {
   getNamesFromPlaylist,
@@ -32,7 +42,7 @@ const redisPlaylistCache = new FileSystemCache({
 });
 
 const getAudioDownloadLink = async (url) => {
-  const title = await getData(url);
+  // const title = await getData(url);
 
   try {
     const res = await fetch(`${HOST}/getLink`, {
@@ -43,12 +53,32 @@ const getAudioDownloadLink = async (url) => {
       },
       body: JSON.stringify({ url, q: 128 }),
     });
-    const file = await res.blob();
+    const data = await res.json();
+
+    let { urlDown, title } = data;
+
+    console.log(
+      "🚀 ~ file: app.js ~ line 49 ~ getAudioDownloadLink ~ title",
+      title
+    );
+
+    const res2 = await fetch(urlDown);
+    const file = await res2.blob();
+
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    // console.log(
+    //   "🚀 ~ file: app.js ~ line 59 ~ getAudioDownloadLink ~ buffer",
+    //   buffer
+    // );
     //   const buffer = Buffer.from(file, "binary");
     //   file.pipe(fs.createWriteStream(`${title}.mp4`));
-    fs.writeFileSync(`${title}.mp3`, buffer);
+    // fs.writeFileSync(`./${title}.mp3`, buffer);
+
+    //
+    const regex = new RegExp(`[${illegalChar}]`, "g");
+    title = title.replace(regex, "");
+    fs.writeFileSync(`music/${title}.mp3`, buffer);
 
     return title;
   } catch (err) {
@@ -79,11 +109,35 @@ app.post("/getDownloadLinksPlaylist", async (req, res) => {
 
   const playListName = playListData.name;
 
+  let gatewayURLS = [];
+  let binname = "";
   if (await redisPlaylistCache.fileExists(playlistID)) {
-    const { binname, playListName } = await redisPlaylistCache.get(playlistID);
+    if (uploadService === "ipfs") {
+      const { gatewayURLS, playListName } = await redisPlaylistCache.get(
+        playlistID
+      );
+      responseState.setData({
+        status: "ok",
+        gatewayURLS,
+        playListName,
+        type: "ipfs",
+      });
+    } else {
+      const { binname, playListName } = await redisPlaylistCache.get(
+        playlistID
+      );
+      responseState.setData({
+        status: "ok",
+        playListName,
+        binname,
+        type: "filebin",
+      });
+    }
+    // const { binname, playListName } = await redisPlaylistCache.get(playlistID);
+    // const obj = await redisPlaylistCache.get(playlistID);
     console.log("playlist cache exist");
     responseState.setState(true);
-    responseState.setData({ status: "ok", playListName, binname });
+
     res.json("getting list");
     return;
   }
@@ -94,21 +148,47 @@ app.post("/getDownloadLinksPlaylist", async (req, res) => {
   const urls = await getURLfromNames(names);
   console.log("data urls: ", urls);
 
-  const binname = await createFileBin();
+  binname = await createFileBin();
   console.log(binname);
 
+  const titles = [];
   try {
     for (let url of urls) {
       const title = await getAudioDownloadLink(url);
-      await upload(binname, `./${title}.mp3`);
+      titles.push(title);
+      if (uploadService === "filebin")
+        await upload(binname, `music/${title}.mp3`);
     }
-    redisPlaylistCache.setExpiry(
-      playlistID,
-      { binname, playListName },
-      expiryTimeInDays * 60 * 60 * 24
-    );
-    responseState.setState(true);
-    responseState.setData({ status: "ok", binname, playListName });
+    let gatewayURLS = [];
+    if (uploadService === "ipfs") {
+      gatewayURLS = await ipFsUpload(titles);
+      redisPlaylistCache.setExpiry(
+        playlistID,
+        { gatewayURLS, playListName },
+        expiryTimeInDays * 60 * 60 * 24
+      );
+      responseState.setState(true);
+      responseState.setData({
+        status: "ok",
+        gatewayURLS,
+        playListName,
+        type: "ipfs",
+      });
+    } else {
+      redisPlaylistCache.setExpiry(
+        playlistID,
+        { binname, playListName },
+        expiryTimeInDays * 60 * 60 * 24
+      );
+      responseState.setState(true);
+      responseState.setData({
+        status: "ok",
+        binname,
+        playListName,
+        type: "filebin",
+      });
+    }
+
     // res.json({ status: "ok", binname });
   } catch (err) {
     console.log(err);
@@ -148,11 +228,20 @@ app.post("/getDownloadLinksIndividual", async (req, res) => {
     return;
   }
 
+  const titles = [];
+  let gatewayURLS = [];
+  let binname = "";
   if (await redisTracksCache.fileExists(trackIDS)) {
-    const binname = await redisTracksCache.get(trackIDS);
+    if (uploadService === "ipfs") {
+      gatewayURLS = await redisTracksCache.get(trackIDS);
+      responseState.setData({ status: "ok", gatewayURLS, type: "ipfs" });
+    } else {
+      binname = await redisTracksCache.get(trackIDS);
+      responseState.setData({ status: "ok", binname, type: "filebin" });
+    }
     console.log("track cache exist");
     responseState.setState(true);
-    responseState.setData({ status: "ok", binname });
+
     // res.json({ status: "ok", binname });
     res.json("getting list");
     return;
@@ -161,21 +250,36 @@ app.post("/getDownloadLinksIndividual", async (req, res) => {
   const urls = await getURLfromNames(names);
   console.log("data urls: ", urls);
 
-  const binname = await createFileBin();
+  binname = await createFileBin();
   console.log(binname);
 
   try {
     for (let url of urls) {
       const title = await getAudioDownloadLink(url);
-      await upload(binname, `./${title}.mp3`);
+      titles.push(title);
+      if (uploadService === "filebin")
+        await upload(binname, `music/${title}.mp3`);
     }
-    redisTracksCache.setExpiry(
-      trackIDS,
-      binname,
-      expiryTimeInDays * 60 * 60 * 24
-    );
+
+    if (uploadService === "ipfs") {
+      const gatewayURLS = await ipFsUpload(titles);
+      redisTracksCache.setExpiry(
+        trackIDS,
+        gatewayURLS,
+        expiryTimeInDays * 60 * 60 * 24
+      );
+      responseState.setData({ status: "ok", gatewayURLS, type: "ipfs" });
+    } else {
+      redisTracksCache.setExpiry(
+        trackIDS,
+        binname,
+        expiryTimeInDays * 60 * 60 * 24
+      );
+      responseState.setData({ status: "ok", binname, type: "filebin" });
+    }
+
     responseState.setState(true);
-    responseState.setData({ status: "ok", binname });
+
     res.json("getting list");
     // res.json({ status: "ok", binname });
   } catch (err) {
@@ -194,4 +298,5 @@ app.get("/getResponseState", (req, res) => {
 
 app.listen(PORT, () => {
   console.log("app is running in PORT ", PORT);
+  // redisClient.FLUSHALL("sync"); //("ASYNC", function (err, succeeded)
 });
