@@ -3,7 +3,7 @@ const cors = require("cors");
 const PORT = process.env.PORT || 8082;
 const fs = require("fs");
 const fetch = require("node-fetch");
-const {getLink}=require('./getLink')
+const {getLink}=require('./getlink')
 
 // fs.readFileSync('csd',{encoding: 'binary'})
 
