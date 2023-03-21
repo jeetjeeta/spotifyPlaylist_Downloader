@@ -3,6 +3,7 @@ const cors = require("cors");
 const PORT = process.env.PORT || 8082;
 const fs = require("fs");
 const fetch = require("node-fetch");
+const {getLink}=require('./getLink')
 
 // fs.readFileSync('csd',{encoding: 'binary'})
 
@@ -45,15 +46,16 @@ const getAudioDownloadLink = async (url) => {
   // const title = await getData(url);
 
   try {
-    const res = await fetch(`${HOST}/getLink`, {
-      method: "post",
-      mode: "cors",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ url, q: 128 }),
-    });
-    const data = await res.json();
+    // const res = await fetch(`${HOST}/getLink`, {
+    //   method: "post",
+    //   mode: "cors",
+    //   headers: {
+    //     "content-type": "application/json",
+    //   },
+    //   body: JSON.stringify({ url, q: 128 }),
+    // });
+    // const data = await res.json();
+    const data=await getLink(url)
 
     let { urlDown, title } = data;
 
@@ -74,7 +76,7 @@ const getAudioDownloadLink = async (url) => {
     console.log("got blob");
       console.log("Took " + (Date.now() - initialTime) / 1000 + "s");
 
-    console.log("bytelength: ", buffer.byteLength());
+    // console.log("bytelength: ", buffer.byteLength());
     // console.log(
     //   "🚀 ~ file: app.js ~ line 59 ~ getAudioDownloadLink ~ buffer",
     //   buffer
