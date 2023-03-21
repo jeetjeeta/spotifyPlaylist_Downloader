@@ -73,6 +73,8 @@ const getAudioDownloadLink = async (url) => {
 
     console.log("got blob");
       console.log("Took " + (Date.now() - initialTime) / 1000 + "s");
+
+    console.log("bytelength: ", buffer.byteLength());
     // console.log(
     //   "🚀 ~ file: app.js ~ line 59 ~ getAudioDownloadLink ~ buffer",
     //   buffer
