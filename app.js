@@ -62,11 +62,17 @@ const getAudioDownloadLink = async (url) => {
       title
     );
 
+    console.log('urldown: ',urlDown)
+     let initialTime = Date.now();
+
     const res2 = await fetch(urlDown);
     const file = await res2.blob();
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    console.log("got blob");
+      console.log("Took " + (Date.now() - initialTime) / 1000 + "s");
     // console.log(
     //   "🚀 ~ file: app.js ~ line 59 ~ getAudioDownloadLink ~ buffer",
     //   buffer
