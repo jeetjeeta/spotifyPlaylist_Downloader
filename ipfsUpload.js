@@ -10,7 +10,8 @@ const ipFsUpload = async (titles) => {
   //     alwaysUpload: true,
   //   });
 
-  const buffers = titles.map((title) => fs.readFileSync(`music/${title}.mp3`));
+  // const buffers = titles.map((title) => fs.readFileSync(`music/${title}.mp3`));
+  const buffers = titles.map((titleObj) => titleObj.buffer);
   //   const uploads = await storage.uploadBatch([
   //     fs.readFileSync("Holiday_Boulevard_of_Broken_Dreams.mp3"),
   //     fs.readFileSync("test.txt"),
@@ -27,11 +28,11 @@ const ipFsUpload = async (titles) => {
 
   for (let i = 0; i < uploads.length; i++) {
     const upload = uploads[i];
-    const title = titles[i];
+    const titleObj = titles[i];
 
     const gatewayURL = storage.resolveScheme(upload);
 
-    const obj = { url: gatewayURL, title };
+    const obj = { url: gatewayURL, title: titleObj.title };
     gatewayURLS.push(obj);
   }
 

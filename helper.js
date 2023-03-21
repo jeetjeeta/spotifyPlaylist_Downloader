@@ -1,6 +1,8 @@
 const dotenv = require("dotenv");
 dotenv.config();
 
+const {youtube} =require('scrape-youtube')
+
 const clientID = process.env.clientID;
 
 const clientSecret = process.env.clientSecret;
@@ -90,24 +92,29 @@ const getNamesFromPlaylist = (playListData) => {
 const getURLfromNames = async (names) => {
   const videoUrls = [];
   for (let name of names) {
-    const ytAPIURL =
-      youtubeBASE_URL +
-      "search" +
-      "?" +
-      "part=snippet" +
-      "&q=" +
-      encodeURIComponent(name) +
-      "&key=" +
-      key;
+    // const ytAPIURL =
+    //   youtubeBASE_URL +
+    //   "search" +
+    //   "?" +
+    //   "part=snippet" +
+    //   "&q=" +
+    //   encodeURIComponent(name) +
+    //   "&key=" +
+    //   key;
 
-    const res = await fetch(ytAPIURL, {
-      method: "get",
-    });
-    const ytSearchData = await res.json();
+    // const res = await fetch(ytAPIURL, {
+    //   method: "get",
+    // });
+    // const ytSearchData = await res.json();
 
-    videoUrls.push(
-      "https://www.youtube.com/watch?v=" + ytSearchData.items[0].id.videoId
-    );
+    const ytSearchData=await youtube.search(name)
+    const vidid=ytSearchData.videos[0].id
+
+    // videoUrls.push(
+    //   "https://www.youtube.com/watch?v=" + ytSearchData.items[0].id.videoId
+    // );
+
+    videoUrls.push("https://www.youtube.com/watch?v=" +vidid)
   }
   return videoUrls;
 };

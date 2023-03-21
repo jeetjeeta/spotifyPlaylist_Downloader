@@ -88,9 +88,9 @@ const getAudioDownloadLink = async (url) => {
     //
     const regex = new RegExp(`[${illegalChar}]`, "g");
     title = title.replace(regex, "");
-    fs.writeFileSync(`music/${title}.mp3`, buffer);
+    // fs.writeFileSync(`music/${title}.mp3`, buffer);
 
-    return title;
+    return {title,buffer};
   } catch (err) {
     console.log(err);
   }
@@ -164,10 +164,10 @@ app.post("/getDownloadLinksPlaylist", async (req, res) => {
   const titles = [];
   try {
     for (let url of urls) {
-      const title = await getAudioDownloadLink(url);
-      titles.push(title);
+      const obj = await getAudioDownloadLink(url);
+      titles.push(obj);
       if (uploadService === "filebin")
-        await upload(binname, `music/${title}.mp3`);
+        await upload(binname, `music/${obj.title}.mp3`);
     }
     let gatewayURLS = [];
     if (uploadService === "ipfs") {
@@ -265,10 +265,10 @@ app.post("/getDownloadLinksIndividual", async (req, res) => {
 
   try {
     for (let url of urls) {
-      const title = await getAudioDownloadLink(url);
-      titles.push(title);
+      const obj = await getAudioDownloadLink(url);
+      titles.push(obj);
       if (uploadService === "filebin")
-        await upload(binname, `music/${title}.mp3`);
+        await upload(binname, `music/${obj.title}.mp3`);
     }
 
     if (uploadService === "ipfs") {
