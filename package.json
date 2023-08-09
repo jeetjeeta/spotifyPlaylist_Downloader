@@ -13,7 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@sekiju/anonfiles-api": "^1.0.2",
-    "@thirdweb-dev/storage": "^1.1.0",
+    "@thirdweb-dev/storage": "^1.2.4",
     "anonfile-lib": "^1.0.1",
     "cheerio": "^1.0.0-rc.12",
     "cors": "^2.8.5",

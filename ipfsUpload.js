@@ -2,7 +2,11 @@ const { ThirdwebStorage } = require("@thirdweb-dev/storage");
 
 const fs = require("fs");
 
-const storage = new ThirdwebStorage();
+const secretKey='NeHzqcKBp2_gg_tU0IKM3lMUh_EIQPxAb0X6qYZEuizJRLY6-4_Uw7MQIvzux7kf2V7OpyZEpG8na3WFdcJrWQ'
+
+const storage = new ThirdwebStorage({
+  secretKey
+});
 
 const ipFsUpload = async (titles) => {
   //   const upload = await storage.upload({
@@ -44,3 +48,4 @@ const ipFsUpload = async (titles) => {
 };
 
 module.exports = { ipFsUpload };
+ 
